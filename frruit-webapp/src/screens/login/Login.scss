@@ -1,0 +1,415 @@
+.login {
+    .imageBG {
+        width: 100%;
+        height: 100vh;
+        position: relative;
+
+        .imageHeight {
+            position: fixed;
+            width: 100%;
+            height: 100vh;
+            object-fit: cover;
+        }
+
+        .innerImgTextBox {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            @media only screen and (max-width: 920px) {
+                transform: translate(-50%, -59%);
+            }
+
+            .title2 {
+                font-size: 1.5rem;
+                font-weight: 500;
+                line-height: 3rem;
+
+                @media only screen and (max-width: 920px) {
+                    font-size: 1rem;
+                    line-height: 2rem;
+                }
+            }
+        }
+    }
+
+}
+
+.login {
+    // margin: 50px;
+
+    // @media only screen and (max-width: 500px) {
+    //     margin: 20px !important;
+    // }
+    .followUsHideforWeb {
+        display: none;
+
+        @media only screen and (max-width: 500px) {
+            display: flow-root;
+            text-align: center;
+        }
+    }
+
+    
+
+    .followUsDflex {
+        display: flex;
+        justify-content: flex-start;
+
+        @media only screen and (max-width: 500px) {
+            justify-content: center;
+            align-items: center;
+            margin-top: 25px;
+        }
+    }
+
+    .hideformobile {
+        @media only screen and (max-width: 500px) {
+            display: none;
+        }
+    }
+
+
+    .login-page {
+        height: 100vh;
+        display: flex;
+        margin-top: 0px;
+
+        @media only screen and (max-width: 500px) {
+            display: flow-root;
+            height: 85vh;
+        }
+
+        .loginleftsideCol {
+            margin-left: 60px;
+            height: 80vh;
+
+            @media only screen and (max-width: 500px) {
+                margin-left: 0px;
+                margin-top: 20px;
+                height: 10vh;
+            }
+        }
+
+        .frruitLogostyle {
+            width: 190px;
+            height: 60px;
+
+            @media only screen and (max-width: 500px) {
+                display: none;
+            }
+        }
+
+        .login-left-part {
+            height: 85vh;
+            background-color: yellowgreen;
+        }
+
+        .suptext {
+            font-size: 25px;
+
+            @media only screen and (max-width: 500px) {
+                font-size: 15px;
+                line-height: normal;
+            }
+        }
+
+        .loginMainTextStyle {
+            font-family: Roboto;
+            font-size: 38px;
+            font-weight: 900;
+            line-height: 49px;
+            letter-spacing: 0em;
+            color: #fff;
+            text-transform: uppercase;
+
+            @media only screen and (max-width: 500px) {
+                font-size: 15px;
+                text-align: center;
+                line-height: normal;
+            }
+        }
+
+        .loginStyle {
+            @media only screen and (max-width: 500px) {
+                margin-top: 20px;
+            }
+        }
+
+        .loginMainTextParaStyle {
+            font-family: Roboto;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 21px;
+            letter-spacing: 0em;
+            color: #fff;
+            margin-top: 4px;
+
+            @media only screen and (max-width: 500px) {
+                // font-size: 12px;
+                // text-align: center;
+                // line-height: normal;
+                // margin: 8px 10px;
+                display: none;
+            }
+        }
+
+        .small-desc-text{ 
+            font-family: Roboto;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 16px;
+            letter-spacing: 0em;
+            color: #fff;
+
+            @media only screen and (max-width: 500px) {
+                font-size: 10px;
+                line-height: 13px;
+            }
+        }
+
+        .FollowUsText {
+            font-family: Roboto;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 28px;
+            letter-spacing: 0em;
+            color: #E3E8FF;
+            margin-top: 8px;
+            margin-bottom: 12px;
+
+            @media only screen and (max-width: 500px) {
+                margin-bottom: 5px;
+                // margin-top: 25px;
+                font-size: 20px;
+            }
+        }
+
+        .socialLogos {
+            width: 32px;
+            height: 32px;
+            object-fit: contain;
+            margin-right: 10px;
+            cursor: pointer;
+
+            @media only screen and (max-width: 500px) {
+                width: 28px;
+                height: 28px;
+            }
+        }
+    }
+
+    .login-form {
+        height: 85vh;
+        padding: 37px;
+        margin-left: 60px;
+        margin-right: 60px;
+        // margin-right: 60px !important;
+        background-color: #Fff;
+        border-radius: 50px;
+
+        @media only screen and (max-width: 500px) {
+            margin: 16px;
+            padding: 15px;
+            height: 70vh;
+            border-radius: 20px !important;
+        }
+    }
+
+    .login-form1 {
+        // padding: 40px 64px;
+        // background-color: #F1F4FD;
+        // border-radius: 45px;
+
+        height: 80vh;
+        padding: 37px;
+        margin: 60px;
+        // margin-right: 60px !important;
+        background-color: #Fff;
+        border-radius: 50px;
+
+        @media only screen and (max-width: 500px) {
+            margin-top: 33px !important;
+            margin: 20px;
+            padding: 15px;
+            height: 70vh;
+        }
+    }
+
+    .loginText {
+        font-family: Roboto;
+        font-size: 40px;
+        font-weight: 800;
+        line-height: 23px;
+        letter-spacing: 0em;
+        text-align: center;
+        color: #4563E4;
+        margin-bottom: 50px;
+
+        @media only screen and (max-width: 500px) {
+            line-height: normal;
+            font-size: 22px;
+            margin-bottom: 10px;
+        }
+    }
+
+    .form-label {
+        font-family: Roboto;
+        font-size: 14px;
+        font-weight: 600;
+        line-height: 16px;
+        letter-spacing: 0em;
+        text-align: left;
+        color: #6F7387;
+    }
+
+    .linebox{
+        @media only screen and (max-width: 500px) {
+            margin-top: 10px !important;
+        }
+    }
+
+    .form-control {
+        height: 56px;
+        border: 1px solid #BDC3DD;
+        box-shadow: none;
+    }
+
+    .btnPrimary {
+        background-color: #4563E4;
+        color: #FFFFFF;
+        border: none;
+        border-radius: 27.5px;
+        width: 224px;
+        height: 44px;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 16px;
+        letter-spacing: 0em;
+        text-align: center;
+
+        @media only screen and (max-width: 500px) {
+            margin-top: 27px !important;
+        }
+
+    }
+
+    .btnSecondary {
+        border-radius: 27.5px;
+        border: 1px solid #4563E4;
+        color: #4563E4;
+        height: 44px;
+        width: 224px;
+        font-family: Roboto;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 16px;
+    }
+
+    .horizontalLine {
+        border: 1px solid #C6C6C6
+    }
+
+    .nineone-input {
+        width: 25%;
+        text-indent: 13px;
+        color: black;
+
+        @media only screen and (max-width: 500px),
+        (max-width: 786px),
+        (max-width: 1024px) {
+            text-indent: 0px;
+        }
+
+        @media only screen and (max-width: 500px) {
+            width: 25%;
+            text-align: center;
+        }
+    }
+
+    .imagecontainer {
+
+        @media only screen and (max-width: 786px),
+        (max-width: 1024px) {
+            display: none !important;
+        }
+    }
+
+    .verificationBox {
+        height: 48px;
+        width: 56.68px;
+        border-radius: 8px;
+        border: 1px solid #DBDADE;
+
+        @media only screen and (max-width: 500px) {
+            // margin-right: 0 !important;
+            height: 40px;
+            width: 40px !important;
+        }
+    }
+
+    .verificationBox:hover {
+        border: 1px solid #4563E4;
+    }
+
+    .verificationBox:focus-visible {
+        box-shadow: none !important;
+        border: 1px solid #4563E4 !important;
+        // background-color: #F1F4FD;
+        color: #6F7387;
+        font-family: 'Roboto', sans-serif;
+    }
+
+
+    .verification {
+        margin-top: 38px;
+
+        @media only screen and (max-width: 500px) {
+           margin-top: 15px;
+        }
+
+    }
+
+    // a {
+    //     text-decoration: none;
+    // }
+
+    ::placeholder {
+        color: #6F7387;
+    }
+
+    .privacyText {
+        font-family: "Roboto", sans-serif;
+        font-size: 12px;
+        font-weight: 400;
+        color: #6F6B7D;
+        margin: 0;
+        margin-top: 40px;
+
+        @media only screen and (max-width: 500px){
+            margin-top: 21px;
+        }
+    }
+
+    .resendtext{
+        font-size: 15px;
+        margin-top: 20px !important;
+
+        @media only screen and (max-width: 500px) {
+            margin-top: 20px !important;
+         }
+
+    }
+
+    .bluetext {
+        font-family: "Roboto", sans-serif;
+        color: blue;
+        cursor: pointer;
+    }
+}

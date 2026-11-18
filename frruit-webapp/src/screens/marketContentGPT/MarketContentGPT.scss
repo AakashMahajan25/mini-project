@@ -1,0 +1,29 @@
+.market-content-gpt-css {
+    .marketContentGptLeftBoxHideClass {
+        @media only screen and (max-width: 600px) {
+            display: none !important;
+        }
+    }
+
+    .hide-on-large-screens {
+        display: flex;
+        justify-content: space-between;
+        border-bottom: solid 1px #EDEDED;
+        padding: 5px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        // line-height: 16.71px;
+        letter-spacing: 0.15000000596046448px;
+        color: #4563E4;
+
+        @media only screen and (min-width: 601px) {
+            display: none;
+        }
+
+        .history-icon-css {
+            width: 24px;
+            object-fit: contain;
+            cursor: pointer;
+        }
+    }
+}

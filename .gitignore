@@ -1,0 +1,12 @@
+node_modules/
+build/
+coverage/
+*.log
+.DS_Store
+
+# secrets
+.env
+.env.*
+!.env.production
+!.env.example
+docker-compose.env

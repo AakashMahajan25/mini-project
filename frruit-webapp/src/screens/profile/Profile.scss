@@ -1,0 +1,137 @@
+.profile-css {
+    .right-part {
+        padding: 20px;
+    }
+
+    .welcome-text {
+        font-weight: 500;
+        font-family: 'Roboto', sans-serif;
+        font-size: 16px;
+        line-height: 18.75px;
+        color: #4563E4;
+    }
+
+    .user-text {
+        font-weight: 600;
+        font-family: 'Roboto', sans-serif;
+        font-size: 24px;
+        line-height: 28.13px;
+        color: #4563E4;
+    }
+
+    .blue-box {
+        background-image: url(../../assets/images/blue-card-bg-img.png);
+        background-repeat: no-repeat;
+        background-size: cover;
+        padding: 16px;
+        border-radius: 15px;
+        min-height: 156px;
+
+        .transactionHistoryRow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            .innerTransactionHistoryRow {
+                display: flex;
+                align-items: center;
+                cursor: pointer;
+                transition: transform 0.3s ease;
+
+                .whiteArrowstyle {
+                    width: 18px;
+                    object-fit: contain;
+                    margin-bottom: 1.2px;
+                }
+            }
+
+            .innerTransactionHistoryRow:hover {
+                transform: scale(1.05);
+            }
+
+        }
+    }
+
+    .text-1 {
+        font-weight: 500;
+        font-family: 'Roboto', sans-serif;
+        font-size: 18px;
+        line-height: 21.09px;
+        color: #fff;
+    }
+
+    .text-2 {
+        font-weight: 500;
+        font-family: 'Roboto', sans-serif;
+        font-size: 12px;
+        line-height: 14.06px;
+        color: #fff;
+    }
+
+    .text-3 {
+        font-weight: 900;
+        font-family: 'Roboto', sans-serif;
+        font-size: 32px;
+        line-height: 37.5px;
+        color: #fff;
+    }
+
+    .text-4 {
+        font-weight: 500;
+        font-family: 'Roboto', sans-serif;
+        font-size: 22px;
+        line-height: 28.13px;
+        color: #fff;
+
+        @media only screen and (max-width: 1024px) {
+            font-size: 18px;
+        }
+    }
+
+    .light-blue-box {
+        padding: 4px 27px;
+        background: #FFFFFF33;
+        border-radius: 10px;
+    }
+
+    .profile-title {
+        font-weight: 500;
+        font-family: 'Roboto', sans-serif;
+        font-size: 18px;
+        line-height: 21.09px;
+        color: #171E42;
+    }
+
+    .cardCustomMarginRight {
+        margin-right: 0.5rem;
+
+        @media only screen and (max-width: 768px) {
+            margin-right: 0rem;
+        }
+    }
+
+    .cardCustomMarginLeft {
+        margin-left: 0.5rem;
+
+        @media only screen and (max-width: 768px) {
+            margin-left: 0rem;
+        }
+    }
+
+    .user-profile-circle {
+        background-color: #E5EAFF;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 75px;
+        width: 75px;
+
+        .user-profile-circle-text {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: #4563E4;
+            font-size: 40px;
+        }
+    }
+}

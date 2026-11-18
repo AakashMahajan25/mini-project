@@ -1,0 +1,1373 @@
+import React, { useState, useImperativeHandle, forwardRef } from 'react'
+import './ChatGpt.scss'
+import ProfileIcon from '../../assets/images/profile_image.png'
+import ArrowGrey from '../../assets/images/arrow-right-grey.png'
+import DefaultImg from '../../assets/images/market-content-default-img.png'
+import LogoCircle from '../../assets/images/frruit-logo-circle.png'
+import CompanyLogo from '../../assets/images/ETlogo.png'
+import TopRIghtArrow from '../../assets/images/topRightArrow.png'
+import BackBtnArrow from '../../assets/images/back-btn-arrow.png';
+import TataLogo from '../../assets/images/Tata_Consultancy_Services_Logo.png'
+import UpGreenArrow from '../../assets/images/up-arrow-outline.png'
+import DownRedArrow from '../../assets/images/down-arrow-outline.png'
+import Slider from 'react-slick'
+import TrendingStocksCard from '../trendingStocks/TrendingStocksCard'
+import DiscoverCorrelationGraph from '../graph/DiscoverCorrelationGraph'
+import BarChart from '../barChart/BarChart'
+import { useSelector } from 'react-redux'
+import { formatTimeAgo, getCurrentTimeWithAMPM, replaceNewlinesWithBr, trimText, TICKER_HEIGHT } from '../../utils/utils'
+import { useLoading, Audio, SpinningCircles, Circles, ThreeDots } from '@agney/react-loading';
+import { useLocation } from 'react-router'
+import UploadDocImg from '../../assets/images/doc-img.png'
+import { useNavigate } from 'react-router-dom';
+import quesIcon from '../../assets/images/i-icon.png';
+// import PieChart from '../pieChart/PieChart'
+import NetworkGraph from '../networkGraph/NetworkGraph'
+import { Tooltip } from 'react-tooltip'
+import FullScreenIcon from '../../assets/images/ic_baseline_fullscreen.png'
+import { Modal, Nav, Tab } from 'react-bootstrap'
+import LineGraph from '../graph/LineGraph'
+import Markdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import moment from 'moment'
+import { InfinitySpin } from 'react-loader-spinner'
+import CustomTable from '../customTable/CustomTable'
+import AlertImg from '../../assets/images/exclamation.png'
+
+const ChatGpt = forwardRef((props, ref) => {
+    const { chatSuggestions } = useSelector(state => state.fruitGPTSlice);
+    const location = useLocation()
+    const [show, setShow] = useState(false);
+    const [show2, setShow2] = useState(false);
+    const [modalGraphData, setModalGraphData] = useState('');
+    const [sourceData, setSourceData] = useState([]);
+    const [tabStates, setTabStates] = useState({});
+    const path = location.pathname === '/market-content-gpt'
+
+    // Expose functions to parent component
+    useImperativeHandle(ref, () => ({
+        clearTabStates: () => {
+            setTabStates({});
+        }
+    }));
+
+    // Function to parse sources from stream content
+    const parseSourcesFromContent = (content) => {
+        if (!content) return { cleanContent: '', sources: [], readingStatus: null, inlineCitations: new Map() };
+        
+        // Extract sources pattern: supports "Reading sources", "Creating enhanced context", and "Searching sources"
+        const sourcesRegex = /& (?:Reading sources|Creating enhanced context|Searching sources)\s*(?:\|\s*(\d+)\s*(articles?|discussions?))?\s*([\s\S]*?)(?=&|\n\n|$)/gi;
+        let sources = [];
+        let readingStatus = null;
+        let cleanContent = content;
+        let inlineCitations = new Map();
+        
+        let match;
+        while ((match = sourcesRegex.exec(content)) !== null) {
+            const [fullMatch, count, type, jsonData] = match;
+            
+            // Set reading status based on the pattern found
+            if (fullMatch.includes('Reading sources')) {
+                readingStatus = count ? `Reading ${count} ${type}` : 'Reading sources';
+            } else if (fullMatch.includes('Creating enhanced context')) {
+                readingStatus = count ? `Creating enhanced context from ${count} ${type}` : 'Creating enhanced context';
+            } else if (fullMatch.includes('Searching sources')) {
+                readingStatus = count ? `Searching ${count} ${type}` : 'Searching sources';
+            }
+            
+            // Extract JSON objects from the data
+            const jsonRegex = /{[^{}]*}/g;
+            let jsonMatch;
+            while ((jsonMatch = jsonRegex.exec(jsonData)) !== null) {
+                try {
+                    const source = JSON.parse(jsonMatch[0]);
+                    if (source.title && source.url) {
+                        sources.push({
+                            title: source.title,
+                            source_url: source.url,
+                            heading: source.title
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Failed to parse source JSON:', jsonMatch[0]);
+                    // Fallback: try to extract title and URL manually
+                    const titleMatch = jsonMatch[0].match(/"title":\s*"([^"]*)"/);
+                    const urlMatch = jsonMatch[0].match(/"url":\s*"([^"]*)"/);
+                    if (titleMatch && urlMatch) {
+                        sources.push({
+                            title: titleMatch[1],
+                            source_url: urlMatch[1],
+                            heading: titleMatch[1]
+                        });
+                    }
+                }
+            }
+            
+            // Remove only the sources section, stop at next & marker or double newline
+            cleanContent = cleanContent.replace(fullMatch, '').trim();
+        }
+        
+        // Parse &sources section with JSON array format - more robust approach
+        const sourcesSectionRegex = /&sources\s*([\s\S]*?)(?=\n\n|\n# |$)/gi;
+        let sourcesSectionMatch;
+        while ((sourcesSectionMatch = sourcesSectionRegex.exec(content)) !== null) {
+            const [fullMatch, sourcesContent] = sourcesSectionMatch;
+            
+            try {
+                // Extract just the JSON array part
+                const jsonMatch = sourcesContent.match(/\[([\s\S]*?)\]/);
+                if (jsonMatch) {
+                    const sourcesArray = JSON.parse(jsonMatch[0]);
+                    sourcesArray.forEach(source => {
+                        if (source.id && source.title && source.url) {
+                            inlineCitations.set(parseInt(source.id), {
+                                id: parseInt(source.id),
+                                name: source.name, // Add name field
+                                title: source.title,
+                                source_url: source.url,
+                                heading: source.title
+                            });
+                        }
+                    });
+                }
+            } catch (e) {
+                console.warn('Failed to parse sources JSON array:', e);
+                console.warn('Content:', sourcesContent);
+            }
+            
+            // Remove the entire &sources section from content
+            cleanContent = cleanContent.replace(fullMatch, '').trim();
+        }
+        
+        // Additional cleanup for any leftover source-related content
+        cleanContent = cleanContent.replace(/&sources[\s\S]*?(?=\n#|\n\n|$)/gm, '').trim();
+        cleanContent = cleanContent.replace(/^\s*\[\s*\{[\s\S]*?\]\s*$/gm, '').trim();
+        cleanContent = cleanContent.replace(/^\s*\{\s*"[\s\S]*?\}\s*$/gm, '').trim();
+        cleanContent = cleanContent.replace(/^\s*\{\s*".*$/gm, '').trim();
+        
+        // Additional cleanup: remove any remaining source JSON objects that might have been missed
+        cleanContent = cleanContent.replace(/\{"title":\s*"[^"]*",\s*"url":\s*"[^"]*"\}/g, '').trim();
+        
+        return { cleanContent, sources, readingStatus, inlineCitations };
+    };
+
+    // Function to extract company name from URL or title
+    const extractCompanyName = (url, title) => {
+        try {
+            const domain = new URL(url).hostname.toLowerCase();
+            
+            // Common news/financial sites mapping
+            const domainMapping = {
+                'thehindubusinessline.com': 'Hindu BL',
+                'moneycontrol.com': 'MoneyControl',
+                'economictimes.indiatimes.com': 'Economic Times',
+                'livemint.com': 'LiveMint',
+                'business-standard.com': 'Business Standard',
+                'financialexpress.com': 'Financial Express',
+                'businesstoday.in': 'Business Today',
+                'etnownews.com': 'ET Now',
+                'goodreturns.in': 'GoodReturns',
+                'tradebrains.in': 'TradeBrains',
+                'trademint.in': 'TradeMint',
+                'timesnownews.com': 'Times Now',
+                'trendlyne.com': 'Trendlyne',
+                'en.wikipedia.org': 'Wikipedia',
+                'reuters.com': 'Reuters',
+                'bloomberg.com': 'Bloomberg',
+                'cnbc.com': 'CNBC',
+                'marketwatch.com': 'MarketWatch'
+            };
+            
+            if (domainMapping[domain]) {
+                return domainMapping[domain];
+            }
+            
+            // Fallback: extract from domain
+            const cleanDomain = domain.replace(/^www\./, '').split('.')[0];
+            return cleanDomain.charAt(0).toUpperCase() + cleanDomain.slice(1);
+        } catch (e) {
+            return 'Source';
+        }
+    };
+
+    // Function to generate company badge
+    const generateCompanyBadge = (companyName, citationId, sourceUrl, title) => {
+        const getInitials = (name) => {
+            return name.split(' ')
+                .map(word => word.charAt(0))
+                .join('')
+                .substring(0, 2)
+                .toUpperCase();
+        };
+        
+        const getCompanyColor = (name) => {
+            const colors = [
+                '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', 
+                '#FFEAA7', '#DDA0DD', '#FFB347', '#87CEEB',
+                '#F4A460', '#98FB98', '#FFE4B5', '#B0E0E6'
+            ];
+            let hash = 0;
+            for (let i = 0; i < name.length; i++) {
+                hash = name.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return colors[Math.abs(hash) % colors.length];
+        };
+        
+        const initials = getInitials(companyName);
+        const bgColor = getCompanyColor(companyName);
+        
+        return `<span class="company-badge" 
+                      style="background-color: ${bgColor};" 
+                      onclick="window.open('${sourceUrl}', '_blank')" 
+                      title="${title} - ${companyName}">
+                    ${initials}
+                </span>`;
+    };
+
+    // Function to parse progress and stream content
+    const parseStreamContent = (content) => {
+        if (!content) return { answer: <p></p>, steps: [], sources: [], readingStatus: null };
+
+        // First parse sources
+        const { cleanContent: contentWithoutSources, sources, readingStatus, inlineCitations } = parseSourcesFromContent(content);
+
+        // Extract thinking steps and progress information
+        const progressRegex = /Progress:\s*\|([█▓▒░\-]+)\|\s*(\d+)%\s*(.+?)\s*\[K/g;
+        const thinkingRegex = /^&\s*Thinking\s*\.\.\.?$/gm;
+        const stepMarkersRegex = /^&\s*(?!Thinking\s*\.\.\.?)(?!Reading sources)(?!Creating enhanced context)(?!Searching sources)(.+?)$/gm;
+        
+        let thinkingSteps = [];
+        let cleanContent = contentWithoutSources;
+
+        // Extract thinking steps from progress indicators
+        let match;
+        while ((match = progressRegex.exec(contentWithoutSources)) !== null) {
+            const [fullMatch, bar, percentage, status] = match;
+            thinkingSteps.push({
+                step: status.trim(),
+                percentage: parseInt(percentage)
+            });
+        }
+
+        // Extract & Thinking patterns
+        while ((match = thinkingRegex.exec(contentWithoutSources)) !== null) {
+            const [fullMatch] = match;
+            thinkingSteps.push({
+                step: "Thinking ...",
+                percentage: null
+            });
+        }
+
+        // Extract step markers (lines starting with & but not & Thinking, & Reading sources, & Creating enhanced context, or & Searching sources)
+        while ((match = stepMarkersRegex.exec(contentWithoutSources)) !== null) {
+            const [fullMatch, stepText] = match;
+            thinkingSteps.push({
+                step: stepText.trim(),
+                percentage: null
+            });
+        }
+
+        // Remove all progress lines, thinking indicators, and step markers from main content
+        cleanContent = contentWithoutSources
+            .replace(/Progress:\s*\|[█▓▒░\-]+\|\s*\d+%\s*.+?\s*\[K/g, '')
+            .replace(/^&\s*Thinking\s*\.\.\.?$/gm, '')
+            .replace(/^&\s*(.+?)$/gm, '')
+            .trim();
+
+        // Check if we should show active thinking indicator
+        const isActiveThinking = contentWithoutSources.includes('& Thinking') && cleanContent.length < 50;
+        
+        // Determine if thinking is complete (has substantial content)
+        const isThinkingComplete = cleanContent.length > 100 || (cleanContent.length > 50 && !isActiveThinking);
+
+        // Debug and render content with citation badges
+        const renderContentWithBadges = (content) => {
+            if (!content) {
+                return <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>;
+            }
+
+
+
+            // If no citations, render normally
+            if (inlineCitations.size === 0) {
+                return <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>;
+            }
+
+            // Use a hybrid approach - render markdown normally but replace citations afterward
+            const MarkdownWithBadges = () => {
+                    const containerRef = React.useRef(null);
+                    
+                    React.useEffect(() => {
+                        if (containerRef.current) {
+                            // After markdown renders, find and replace citation text with badges
+                            const textNodes = [];
+                            const walker = document.createTreeWalker(
+                                containerRef.current,
+                                NodeFilter.SHOW_TEXT,
+                                null,
+                                false
+                            );
+                            
+                            let node;
+                            while (node = walker.nextNode()) {
+                                if (node.textContent.includes('[') && /\[\d+\]/.test(node.textContent)) {
+                                    textNodes.push(node);
+                                }
+                            }
+                            
+                            // Replace citations in text nodes
+                            textNodes.forEach(textNode => {
+                                const parent = textNode.parentNode;
+                                const text = textNode.textContent;
+                                
+                                // Split text by citation patterns
+                                const parts = text.split(/(\[\d+\])/g);
+                                const fragment = document.createDocumentFragment();
+                                
+                                parts.forEach(part => {
+                                    const citationMatch = part.match(/\[(\d+)\]/);
+                                    if (citationMatch) {
+                                        const citationId = parseInt(citationMatch[1]);
+                                        const citation = inlineCitations.get(citationId);
+                                        
+                                        if (citation) {
+                                            const companyName = extractCompanyName(citation.source_url, citation.title);
+                                            
+                                            // Create simple grey source badge with name
+                                            const badge = document.createElement('span');
+                                            badge.className = 'source-badge';
+                                            badge.textContent = citation.name || 'Source'; // Use name field if available, fallback to 'Source'
+                                            badge.title = `${citation.title} - ${companyName}`;
+                                            badge.style.cursor = 'pointer';
+                                            badge.onclick = () => window.open(citation.source_url, '_blank');
+                                            
+                                            fragment.appendChild(badge);
+                                        } else {
+                                            fragment.appendChild(document.createTextNode(part));
+                                        }
+                                    } else {
+                                        fragment.appendChild(document.createTextNode(part));
+                                    }
+                                });
+                                
+                                parent.replaceChild(fragment, textNode);
+                            });
+                        }
+                    }, []);
+                    
+                    return (
+                        <div ref={containerRef}>
+                            <Markdown remarkPlugins={[remarkGfm]}>{content}</Markdown>
+                        </div>
+                    );
+            };
+                
+            return <MarkdownWithBadges />;
+        };
+
+        // Combine all sources (streaming sources + inline citations)
+        const allSources = [...sources, ...Array.from(inlineCitations.values())];
+
+                const answerContent = (
+            <div>
+                {/* Render main content if available */}
+                {cleanContent && renderContentWithBadges(cleanContent)}
+                
+                {/* Show placeholder if no content */}
+                {!cleanContent && (
+                    <p></p>
+                )}
+                            </div>
+        );
+
+        const stepsContent = thinkingSteps.length > 0 ? thinkingSteps : [];
+        const currentStep = thinkingSteps.length > 0 ? thinkingSteps[thinkingSteps.length - 1].step : null;
+        
+        return { answer: answerContent, steps: stepsContent, sources: allSources, readingStatus, currentStep };
+    };
+
+    // Function to check if content has substantial answer (not just sources)
+    const hasSubstantialContent = (content) => {
+        if (!content) return false;
+        
+        // Parse the content to get clean answer content
+        const { cleanContent } = parseSourcesFromContent(content);
+        
+        // Remove progress indicators and other metadata
+        const actualContent = cleanContent
+            .replace(/Progress:\s*\|[█▓▒░\-]+\|\s*\d+%\s*.+?\s*\[K/g, '')
+            .replace(/^&\s*Thinking\s*\.\.\.?$/gm, '')
+            .replace(/^&\s*(.+?)$/gm, '')
+            .trim();
+            
+        // Consider it substantial if there's at least 100 characters of actual content
+        // This gives more time for steps to be processed during streaming
+        return actualContent.length >= 100;
+    };
+
+    // Function to get or set tab state for a specific response
+    const getTabState = (responseId) => {
+        return tabStates[responseId] || 'answer';
+    };
+
+    const setTabState = (responseId, tabKey) => {
+        setTabStates(prev => ({
+            ...prev,
+            [responseId]: tabKey
+        }));
+    };
+
+    // Function to render tabbed content
+    const renderTabbedContent = (content, streamLinks = [], responseId = 'stream') => {
+        const parsed = parseStreamContent(content);
+        const allSources = [...parsed.sources, ...streamLinks];
+        const currentTab = getTabState(responseId);
+        
+        return (
+            <div className="response-tabs">
+                <Tab.Container activeKey={currentTab} onSelect={(k) => setTabState(responseId, k)}>
+                    <Nav variant="tabs" className="custom-tabs">
+                        <Nav.Item>
+                            <Nav.Link eventKey="answer">
+                                <img src="/bot.png" alt="AI Bot" className="tab-icon" width="16" height="16" />
+                                Answer
+                            </Nav.Link>
+                        </Nav.Item>
+                        {/* <Nav.Item>
+                            <Nav.Link eventKey="steps">
+                                <svg className="tab-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                </svg>
+                                Steps {parsed.steps.length > 0 && <span className="step-count">({parsed.steps.length})</span>}
+                            </Nav.Link>
+                        </Nav.Item> */}
+                        <Nav.Item>
+                            <Nav.Link eventKey="sources">
+                                <svg className="tab-icon" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h4a1 1 0 010 2H6.414l2.293 2.293a1 1 0 11-1.414 1.414L5 6.414V8a1 1 0 01-2 0V4zm9 1a1 1 0 010-2h4a1 1 0 011 1v4a1 1 0 01-2 0V6.414l-2.293 2.293a1 1 0 11-1.414-1.414L13.586 5H12zm-9 7a1 1 0 012 0v1.586l2.293-2.293a1 1 0 111.414 1.414L6.414 15H8a1 1 0 010 2H4a1 1 0 01-1-1v-4zm13-1a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 010-2h1.586l-2.293-2.293a1 1 0 111.414-1.414L15 13.586V12a1 1 0 011-1z" clipRule="evenodd" />
+                                </svg>
+                                Sources {allSources.length > 0 && <span className="step-count">({allSources.length})</span>}
+                            </Nav.Link>
+                        </Nav.Item>
+                    </Nav>
+                    <Tab.Content className="tab-content-area">
+                        <Tab.Pane eventKey="answer">
+                            {parsed.answer}
+                        </Tab.Pane>
+                        <Tab.Pane eventKey="steps">
+                            {parsed.steps.length > 0 ? (
+                                <div className="steps-container">
+                                    {parsed.steps.map((step, index) => (
+                                        <div key={index} className="step-item">
+                                            <div className="step-number">{index + 1}</div>
+                                            <div className="step-content">
+                                                <span className="step-text">{step.step}</span>
+                                                {step.percentage && (
+                                                    <div className="step-progress">
+                                                        <div className="progress-bar">
+                                                            <div 
+                                                                className="progress-fill" 
+                                                                style={{ width: `${step.percentage}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="progress-text">{step.percentage}%</span>
+                    </div>
+                )}
+                        </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="no-steps">
+                                    <p>No detailed steps available for this response.</p>
+                    </div>
+                )}
+                        </Tab.Pane>
+                        <Tab.Pane eventKey="sources">
+                            {allSources.length > 0 ? (
+                                <div className="sources-list-container">
+                                    <ol className="sources-list">
+                                        {allSources.map((link, index) => (
+                                            <li key={index} className="source-item">
+                                                <a href={link?.source_url} target='_blank' rel='noopener noreferrer' className="source-link">
+                                                    <div className="source-title">{link?.heading ?? link?.title}</div>
+                                                    <div className="source-url">{link?.source_url}</div>
+                                                    {link?.source_date && (
+                                                        <div className="source-date">
+                                                            {moment(link?.source_date).format('MMMM DD, YYYY • h:mm a')}
+                                                        </div>
+                                                    )}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ol>
+                                </div>
+                            ) : (
+                                <div className="no-sources">
+                                    <p>No sources available for this response.</p>
+                                </div>
+                            )}
+                        </Tab.Pane>
+                    </Tab.Content>
+                </Tab.Container>
+            </div>
+        );
+    };
+    const handleShow2 = () => {
+        setShow2(true);
+    }
+    const handleClose2 = () => {
+        setShow2(false)
+    };
+    const { containerProps, indicatorEl } = useLoading({
+        loading: true,
+        indicator: <InfinitySpin width="150" color="#4563e4" />,
+    });
+    var settings = {
+        dots: false,
+        infinite: false,
+        speed: 500,
+        slidesToShow: 8.5,
+        swipeToSlide: true,
+        arrows: false,
+    };
+
+    var stocksettings = {
+        dots: false,
+        infinite: false,
+        speed: 500,
+        slidesToShow: 3.2,
+        swipeToSlide: true,
+        arrows: false
+    };
+
+    var graphSettings = {
+        dots: false,
+        infinite: false,
+        speed: 500,
+        slidesToShow: 1.5,
+        swipeToSlide: true,
+        arrows: false,
+    };
+
+    const fundamental = [
+        {
+            title: 'Market Cap',
+            value: '1295'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+        {
+            title: 'Market Cap',
+            value: '129497.95'
+        },
+    ]
+    const trendingStocksData = [
+        {
+            stockName: 'TCS',
+            ltpLabel: 'LTP',
+            ltpValue: '3903',
+            percentageChange: '0.5%',
+            buyButtonText: 'Buy',
+            sellButtonText: 'Sell',
+            fruitButtonText: 'Get Frruit',
+        },
+        {
+            stockName: 'TCS',
+            ltpLabel: 'LTP',
+            ltpValue: '3903',
+            percentageChange: '-0.5%',
+            buyButtonText: 'Buy',
+            sellButtonText: 'Sell',
+            fruitButtonText: 'Get Frruit',
+        },
+        {
+            stockName: 'TCS',
+            ltpLabel: 'LTP',
+            ltpValue: '3903',
+            percentageChange: '0.5%',
+            buyButtonText: 'Buy',
+            sellButtonText: 'Sell',
+            fruitButtonText: 'Get Frruit',
+        },
+        {
+            stockName: 'TCS',
+            ltpLabel: 'LTP',
+            ltpValue: '3903',
+            percentageChange: '-0.5%',
+            buyButtonText: 'Buy',
+            sellButtonText: 'Sell',
+            fruitButtonText: 'Get Frruit',
+        },
+        {
+            stockName: 'TCS',
+            ltpLabel: 'LTP',
+            ltpValue: '3903',
+            percentageChange: '0.5%',
+            buyButtonText: 'Buy',
+            sellButtonText: 'Sell',
+            fruitButtonText: 'Get Frruit',
+        },
+    ];
+    const cardsData = [
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+        { logoSrc: CompanyLogo, companyName: 'Economic Times', cardTitle: 'Tata Price up by 5%', cardPara: 'Tata Consultancy Services Limited (TCS) is an India-based company engaged in providing information technology (IT) services, consulting, and business solutio' },
+    ];
+    const { containerRef, docStatus = false, docName = '', newChat, selectedType, flag } = props;
+
+    const { chatHistory, frruitLoader } = useSelector(state => state.fruitGPTSlice);
+    const { contentChatHistory, contentGPTLoader, contentGraphLoader } = useSelector(state => state.contentGPTSlice);
+
+
+    const newsItem = {
+        image: "https://www.benzinga.com/next-assets/images/schema-image-default.png",
+        newsLink: "https://www.globenewswire.com/news-release/2024/03/18/2847476/0/en/INVL-Technology-completed-assessment-of-M-A-intermediaries-and-chose-a-service-provider.html",
+        timeStamp: "20240318T074500",
+        title: "INVL Technology completed assessment of M&A intermediaries and chose a service provider"
+    }
+
+    const colors = ['#FF7F50', "#40E0D0", '#DA70D6', '#87CEEB', "#32CD32", '#DAA520', "#E6E6FA", '#DC143C', '#6495ED', "#7FFF00", '#7FFFD4', "#FA8072", '#FF1493', '#00FFFF', "#EE82EE",]
+
+    const getRandomColor = () => {
+        const randomIndex = Math.floor(Math.random() * colors.length);
+        return colors[randomIndex];
+    }
+
+    function toCamelCase(str) {
+        str = str?.replace(/_/g, ' '); // Replace underscores with spaces
+        return str?.toLowerCase()?.replace(/(^|\s)\S/g, function (match) {
+            return match?.toUpperCase();
+        });
+    }
+
+
+    const data = {
+        nodes: removeDuplicatesFromArray(modalGraphData?.Nodes?.map((el, i) => ({ ...el, color: getRandomColor() }))),
+        edges: modalGraphData?.Edges?.map((el, i) => ({ ...el, label: toCamelCase(el?.label) }))
+    };
+
+
+    function removeDuplicatesFromArray(arr) {
+        const uniqueObjects = {};
+        const resultArray = [];
+
+        arr?.forEach(item => {
+            if (!uniqueObjects[item?.id]) {
+                uniqueObjects[item?.id] = true;
+                resultArray.push(item);
+            }
+        });
+
+        return resultArray;
+    }
+
+    const renderLinkGraph = (chartData) => {
+        const nodes = removeDuplicatesFromArray(chartData?.Nodes?.map((el, i) => ({ ...el, color: getRandomColor() })))
+        const edges = chartData?.Edges?.map((el, i) => ({ ...el, label: toCamelCase(el?.label) }))
+        return (
+            <NetworkGraph height={'350px'} nodes={nodes}
+                edges={edges}
+            />
+        )
+    };
+
+
+    // const GraphData =  [
+    //     {
+    //         'metric_name': 'ROCE',
+    //         'chart_type': 'bar',
+    //         'xlabel': 'years',
+    //         'ylabel': 'ROCE',
+    //         'data': [
+    //             {
+    //                 'company_name': 'ASIAN PAINTS',
+    //                 'x-axis': ['2023', '2022', '2021', '2020'],
+    //                 'y-axis': ['35.93', '36.07', '31.42', '35.2']
+    //             },
+    //             {
+    //                 'company_name': 'COAL INDIA',
+    //                 'x-axis': ['2023', '2022', '2021', '2020'],
+    //                 'y-axis': ['51.62', '35.13', '56.47', '67.45']
+    //             }]
+    //     },
+    //     {
+    //         'metric_name': 'ROE',
+    //         'chart_type': 'bar',
+    //         'xlabel': 'years',
+    //         'ylabel': 'ROE',
+    //         'data': [{
+    //             'company_name': 'ASIAN PAINTS',
+    //             'x-axis': ['2023', '2022', '2021', '2020'],
+    //             'y-axis': ['24.65', '29.01', '28.33', '28.34']
+    //         },
+    //         {
+    //             'company_name': 'COAL INDIA',
+    //             'x-axis': ['2023', '2022', '2021', '2020'],
+    //             'y-axis': ['73.23', '45.52', '67.66', '89.54']
+    //         }]
+    //     }
+    // ]
+
+    const renderGraph = (chartData) => {
+        if (chartData?.length > 0) {
+            // If there's only one object in chartData, render one graph
+            if (chartData.length === 1) {
+                const dataObject = chartData[0];
+                const labels = dataObject.data[0]['x-axis'];
+                const data = dataObject.data.map(point => point['y-axis']?.map(parseFloat));
+                return (
+                    <div className='graphSlider'>
+                        <div className='chartGraph' style={{ backgroundColor: '#F1F4FD' }}>
+                            <h4 className='title'>{dataObject.metric_name}</h4>
+                            {
+                                dataObject?.chart_type === 'bar' ?
+                                    <BarChart
+                                        index={1 + Math.random()}
+                                        graphData={{
+                                            labels: [...labels],
+                                            data: data
+                                        }}
+                                        xAxisLabel={dataObject.xlabel}
+                                        yAxisLabel={dataObject.ylabel}
+                                        legendLabels={dataObject.data.map(point => point['company_name'])}
+                                    />
+                                    :
+                                    <LineGraph
+                                        index={1 + Math.random()}
+                                        graphData={{
+                                            labels: [...labels],
+                                            data: data
+                                        }}
+                                        xAxisLabel={dataObject.xlabel}
+                                        yAxisLabel={dataObject.ylabel}
+                                        legendLabels={dataObject.data.map(point => point['company_name'])}
+                                    />
+                            }
+                        </div>
+                    </div>
+                );
+            } else { // If there are two objects in GraphData, render two graphs
+                return (
+                    <div className='graphSlider'>
+                        {
+                            chartData?.length > 2 &&
+                            <h6 style={{ color: 'rgb(69, 99, 228)', fontSize: 14, textAlign: 'right' }}>Slide to Know More</h6>
+                        }
+                        <Slider {...graphSettings}>
+                            {chartData.map((dataObject, index) => (
+                                <div className='chartGraph' key={index} style={{ backgroundColor: '#F1F4FD', width: 600 }}>
+                                    <h4 className='title'>{dataObject.metric_name}</h4>
+                                    {dataObject?.chart_type === 'bar' ?
+
+                                        <BarChart
+                                            index={index + 1}
+                                            graphData={{
+                                                labels: [...dataObject.data[0]['x-axis']],
+                                                data: dataObject.data.map(point => point['y-axis'].map(parseFloat))
+                                            }}
+                                            xAxisLabel={dataObject.xlabel}
+                                            yAxisLabel={dataObject.ylabel}
+                                            legendLabels={dataObject.data.map(point => point.company_name)}
+                                        />
+                                        :
+                                        <LineGraph
+                                            index={index}
+                                            graphData={{
+                                                labels: [...dataObject.data[0]['x-axis']],
+                                                data: dataObject.data.map(point => point['y-axis'].map(parseFloat))
+                                            }}
+                                            xAxisLabel={dataObject.xlabel}
+                                            yAxisLabel={dataObject.ylabel}
+                                            legendLabels={dataObject.data.map(point => point.company_name)}
+                                        />
+                                    }
+                                </div>
+                            ))}
+                        </Slider>
+                    </div>
+                );
+            }
+        } else {
+            return null;
+        }
+    };
+
+    const navigate = useNavigate();
+    const routeChangeFrruitGPT = (question) => {
+        navigate("/frruit-gpt", {
+            state: { question, fundamental: 'news_bing' },
+        });
+    };
+    const handleShow = (data) => {
+        setModalGraphData(data)
+        setShow(true);
+    }
+
+    // const tableHeaders = ['Company', 'Ticker', 'Industry', 'Market Cap', 'EPS(₹)'];
+
+    // const userData = [
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+    //     {
+    //         type: 'Tata Consultancy Services Limited',
+    //         tickername: 'TCS',
+    //         industryname: 'IT',
+    //         marketcapunits: '14,41,988 Cr',
+    //         epsunits: '126.88',
+    //     },
+
+    // ]
+
+    return (
+        <>
+            <div className='ChatGpt' style={{
+                height: path ? (window.innerWidth < 786 ? (window.innerHeight - TICKER_HEIGHT) - 170: (window.innerHeight - TICKER_HEIGHT) - 200) : (window.innerWidth < 786 ? (window.innerHeight - TICKER_HEIGHT) - 175 : (window.innerHeight - TICKER_HEIGHT) - 205),
+                paddingBottom: chatHistory.length === 0 && !path ? 0 : 40,
+                marginTop: window.innerWidth < 500 ? 0 : (path ? (contentChatHistory.length === 0 ? 10 : 10) : 0),
+                // marginTop: path ? (contentChatHistory.length === 0 ? 10 : 10) : 0,
+                // marginBottom: window.innerWidth < 786 ? 80 : 20,
+                marginBottom: path ? (window.innerWidth < 786 ? 80 : 20) : (window.innerWidth < 786 ? 80 : 20)
+            }} ref={containerRef}>
+                {
+                    (newChat && !path) && <div className='default-screens-content' style={{ height: (window.innerHeight - TICKER_HEIGHT) - 240 }}>
+                        <div className='text-center'>
+                            <img src={LogoCircle} width={57} style={{ objectFit: 'contain' }} />
+                            <div className='help-text'>How can I help you today ?</div>
+                            {/* <div className='row'>
+                                {chatSuggestions?.slice(0, window.innerWidth < 600 ? 2 : 4).map((item, index) => (
+                                    <div key={index} className='col-lg-6 col-md-12 column-pad' style={{ cursor: 'pointer' }} onClick={() => routeChangeFrruitGPT(item?.prompt_text)}>
+                                        <div className='prompts-text-bg'>
+                                            <div className=' d-flex justify-content-between align-items-center w-100' >
+                                                <p className='prompts-text'>{item?.prompt_text}</p>
+                                                <img style={{ width: 24, objectFit: 'contain' }} className={`my-anchor-element-${index}`} src={quesIcon} />
+                                            </div>
+                                        </div>
+                                        <Tooltip anchorSelect={`.my-anchor-element-${index}`} place="top" className="bg-primary">
+                                            {item?.prompt_description ? item?.prompt_description : item?.prompt_text}
+                                        </Tooltip>
+                                    </div>
+                                ))}
+                            </div> */}
+                            <div className='blue-box-alert'>
+                                <img src={AlertImg} className='alert-img' />
+                                <div className='alert-desc'>While we strive to deliver the best actionable insights using AI. Gathering and analyzing company data or videos may take a moment, so we kindly ask for your patience while we process everything!</div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                {
+                    (newChat && path) && <div className='default-screens-content' style={{ height: (window.innerHeight - TICKER_HEIGHT) - 310 }}>
+                        <div className='text-center'>
+                            <img src={DefaultImg} className='default-screens-content-img-css' />
+                            <div className='help-text'>How can I help you today ?</div>
+                            <div className='default-para-text'>Supercharge your investment decisions : Attach documents or YouTube links on financial markets for GPT-driven insights!</div>
+                        </div>
+                    </div>
+
+                }
+                {
+                    chatHistory?.map((chat, index) =>
+                        chat?.person === 'user' ?
+                            <div className='d-flex justify-content-end'>
+                                <div className='rightChat'>
+                                    {/* <img src={ProfileIcon} className='profile-styles' /> */}
+                                    <div className='d-flex align-items-center my-2 floatRight'>
+                                        <img src={ArrowGrey} className='arrow' />
+                                        <p className='you-text'>You</p>
+                                    </div>
+                                    <div className='chat-text-container'>
+                                        <h3 className='chat-text'>{chat?.text}</h3>
+                                        <div className='d-flex justify-content-end'>
+                                            <h3 className='chat-text' style={{ color: "rgba(255, 255, 255, 0.8)", fontWeight: '400', fontSize: 12 }}>{getCurrentTimeWithAMPM(chat?.createdAt)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            :
+                            <div className='leftChat'>
+                                {
+                                    chatHistory[index - 1]?.person !== "bot" &&
+                                    <>
+                                        <img src={LogoCircle} className='profile-styles' />
+                                        <div className='d-flex align-items-center my-2 floatLeft'>
+                                            <img src={ArrowGrey} className='arrow' />
+                                            <p className='you-text'>Frruit</p>
+                                            <h3 className='you-text' style={{ color: "#a4a5a7", fontWeight: '400', marginBottom: 0, marginLeft: 5, fontSize: 12 }}>{getCurrentTimeWithAMPM(chat?.createdAt)}</h3>
+                                        </div>
+                                    </>
+                                }
+                                {
+                                    chat.type === 'text' ? (
+                                        <>
+                                            <div className='chat-text-container'>
+                                                {chat?.focus_type === 'screener' ? (
+                                                    <div className='screener-table-container'>
+                                                        <h3
+                                                            className='chat-text mt-1 screener-table'
+                                                            dangerouslySetInnerHTML={{ __html: chat?.text }}
+                                                        ></h3>
+                                                    </div>
+                                                ) : (
+                                                    renderTabbedContent(chat?.text || '', chat?.link || [], `chat-${index}`)
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        renderGraph(chat?.text)
+                                    )
+                                }
+
+                                {/* {
+                                    <div key={index} className='newsBox' style={{ marginBottom: 20, cursor: 'pointer',border:'1px solid #4563E4',width:'fit-content',padding:"10px 16px",borderRadius:16,backgroundColor:'#F1F4FD' }}>
+                                        <div className='d-flex justify-content-start'>
+                                            <div style={{width:200}}>
+                                                <p className='newsTitle mt-1' style={{ fontSize: 12 }}>{newsItem?.title}</p>
+                                                <div className='d-flex justify-content-start align-items-center'>
+                                                    <img height={16} style={{ width: 16, objectFit: 'cover', marginRight: '5px' }} src={NewsTime} />
+                                                    <p className='newsPara' style={{ fontSize: 12 }}>{formatTimeAgo(newsItem?.timeStamp)}</p>
+                                                </div>
+                                                <button className='light-blue-btn mt-2'>View More</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                } */}
+                                {/* <img src={LogoCircle} className='profile-styles' /> */}
+
+                                {/* {
+                    <div className='stock-list'>
+                        <div className='d-flex align-items-center'>
+                            <div className='image-stock'>
+                                <img src={TataLogo} />
+                            </div>
+                            <div className='stock-text'>
+                                <h3 className='stock-title'>TCS</h3>
+                                <div className='d-flex align-items-center mt-1'>
+                                    <h5 className='stock-subTitle'>LTP</h5>
+                                    <h5 className='stock-price-green'>3903</h5>
+                                    <h5 className='stock-price-green'>0.5%</h5>
+                                    <img src={UpGreenArrow} className='arrow' />
+                                </div>
+                            </div>
+                        </div>
+                        <div className='button-stock-list'>
+                            <button className='btn-green-buy'>Buy</button>
+                            <button className='btn-red-sell'>Sell</button>
+                        </div>
+                    </div>
+
+
+
+
+                      <div className='chartGraph'>
+                            <h4 className='title'>{chartData[keys[0]].metric_name}</h4>
+                            <BarChart
+                                index={2}
+                                graphData={{
+                                    labels: [...labels].reverse(),
+                                    data: [...data].reverse()
+                                }}
+                            />
+                        </div>
+                        <div className='chartGraph'>
+                            <h4 className='title'>{chartData[keys[0]].metric_name}</h4>
+                            <PieChart
+                                index={3}
+                                graphData={{
+                                    labels: [...labels].reverse(),
+                                    data: [...data].reverse()
+                                }}
+                            />
+                        </div>
+                } */}
+
+
+
+                                {/* {
+                                <div className='graphSlider'>
+                                    <Slider {...graphSettings}>
+                                        <div className='chartGraph'>
+                                            <h4 className='title'>Price Chart</h4>
+                                            <DiscoverCorrelationGraph
+                                                index={1}
+                                                graphData={{
+                                                    labels: ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20'],
+                                                    data: [800, 650, 300, 550, 852, 157, 900, 350, 1000, 432]
+                                                }}
+                                            />
+                                        </div>
+                                        <div className='chartGraph'>
+                                            <div className='d-flex align-items-center justify-content-between'>
+                                                <h4 className='title'>Financials</h4>
+                                                <div className='d-flex align-items-center'>
+                                                    <div className='blue-btn me-3' style={{ padding: '8px 33px', cursor: 'pointer' }}>Revenue</div>
+                                                    <div className='light-blue-btn me-3' style={{ padding: '8px 33px', cursor: 'pointer' }}>Profit</div>
+                                                    <div className='light-blue-btn' style={{ padding: '8px 33px', cursor: 'pointer' }}>Net Worth</div>
+                                                </div>
+                                            </div>
+                                            <BarChart
+                                                index={2}
+                                                graphData={{
+                                                    labels: ['2', '4', '6', '8', '10', '12', '14', '16', '18', '20'],
+                                                    data: [800, 650, 300, 550, 852, 157, 900, 350, 1000, 432]
+                                                }}
+                                            />
+                                        </div>
+                                    </Slider>
+                                </div>
+
+                            } */}
+
+                                {/* <div className='fundamental-container'>
+                    <h2 className='fundamental-maintitle'>Fundamentals</h2>
+                    <Slider {...settings}>
+                        {fundamental.map((fundamental) => (
+                            <>
+                                <div className='fundamental'>
+                                    <h4 className='fundamental-title'>{fundamental?.title}</h4>
+                                    <h4 className='fundamental-value'>{fundamental?.value}</h4>
+                                </div>
+                            </>
+
+                        ))}
+                    </Slider>
+                </div> */}
+
+                                {/* <div className='fundamental-container'>
+                    <h2 className='fundamental-maintitle'>Similar Stocks</h2>
+                    <Slider {...stocksettings}>
+                        {trendingStocksData.map((stockData, index) => (
+                            <TrendingStocksCard {...stockData} />
+                        ))}
+                    </Slider>
+                </div> */}
+
+
+                            </div>
+                    )}
+                {
+
+                    (props?.streamData || props.streamInitiated) &&
+                    <div className='leftChat'>
+                        <img src={LogoCircle} className='profile-styles' />
+                        <div className='d-flex align-items-center my-2 floatLeft'>
+                            <img src={ArrowGrey} className='arrow' />
+                            <p className='you-text'>Frruit</p>
+                            <h3 className='you-text' style={{ color: "#a4a5a7", fontWeight: '400', marginBottom: 0, marginLeft: 5, fontSize: 12 }}>{getCurrentTimeWithAMPM(moment())}</h3>
+                        </div>
+                                                <div className={`chat-text-container chat-stream ${props.streamInitiated && !props.streamData ? 'blinking' : ''}`}>
+                            {props?.streamData && (!props.streamInitiated || hasSubstantialContent(props.streamData)) ? renderTabbedContent(props?.streamData || '', props?.streamLinks || [], 'stream') : (
+                                <div className="loading-blip">
+                                    <div className="single-blip"></div>
+                                    {props?.streamData && (() => {
+                                        const parsed = parseStreamContent(props.streamData);
+                                        return parsed.currentStep && (
+                                            <span className="current-step-text">{parsed.currentStep}</span>
+                                        );
+                                    })()}
+        </div>
+                            )}
+                                                        </div>
+
+                    </div>
+                }
+                {
+                    frruitLoader &&
+                    <div className='leftChat'>
+                        <img src={LogoCircle} className='profile-styles' />
+                        <div className='d-flex align-items-center my-2 floatLeft'>
+                            <img src={ArrowGrey} className='arrow' />
+                            <p className='you-text'>Frruit</p>
+                            <h3 className='you-text' style={{ color: "#a4a5a7", fontWeight: '400', marginBottom: 0, marginLeft: 5, fontSize: 12 }}>{getCurrentTimeWithAMPM(moment())}</h3>
+                        </div>
+                        <div className={`chat-text-container chat-stream ${frruitLoader ? 'blinking' : ''}`}>
+                            <div className="loading-blip">
+                                <div className="single-blip"></div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                {/* <div className='sourceCardCss'>
+                    <div className='Dflex-css'>
+                        <div className='d-flex align-items-center'>
+                            <img src={CompanyLogo} className='smallCircleLogoCss me-2' />
+                            <div className='companyNameCss'>Economic Times </div>
+                        </div>
+                        <img src={TopRIghtArrow} className='smallCircleLogoCss' />
+                    </div>
+                </div> */}
+                {/* <div className='companyCardSTyleCss'>
+                    <div className='cardContainer'>
+                        {cardsData.slice(0, 3).map((card, index) => (
+                            <div key={index} className='sourceCardCss'>
+                                <div className='Dflex-css'>
+                                    <div className='d-flex align-items-center'>
+                                        <img src={card.logoSrc} className='smallCircleLogoCss me-2' alt='Company Logo' />
+                                        <div className='companyNameCss'>{card.companyName}</div>
+                                    </div>
+                                    <img src={TopRIghtArrow} className='smallCircleLogoCss' alt='Arrow Icon' />
+                                </div>
+                            </div>
+                        ))}
+                        <div className='sourceCardCss' style={{ width: 'max-content' }} onClick={handleShow2}>
+                            <div className='Dflex-css'>
+                                <div className='d-flex align-items-center'>
+                                    <div className='companyNameCss me-2'>View All</div>
+                                </div>
+                                <img src={TopRIghtArrow} className='smallCircleLogoCss' />
+                            </div>
+                        </div>
+                    </div>
+                </div> */}
+                {(docName && docStatus && selectedType === 'attachment') &&
+                    <div className='d-flex justify-content-end'>
+                        <div className='rightChat'>
+                            {/* <img src={ProfileIcon} className='profile-styles' /> */}
+                            <div className='d-flex align-items-center my-2 floatRight'>
+                                <img src={ArrowGrey} className='arrow' />
+                                <p className='you-text'>You</p>
+                            </div>
+                            <div className='chat-text-container'>
+                                <div className='d-flex'>
+                                    <div className='attached-doc-white-box'>
+                                        <img src={UploadDocImg} className='attached-image' />
+                                        <div className='pdf-name me-2'>{docName}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+                {
+                    contentChatHistory?.map((chat, index) =>
+                        chat?.person === 'user' ?
+                            <div className='d-flex justify-content-end'>
+                                <div className='rightChat' style={{ marginTop: 0 }}>
+                                    {/* <img src={ProfileIcon} className='profile-styles' /> */}
+                                    <div className='d-flex align-items-center my-2 floatRight'>
+                                        <img src={ArrowGrey} className='arrow' />
+                                        <p className='you-text'>You</p>
+                                    </div>
+                                    <div className='chat-text-container'>
+                                        <h3 className='chat-text'>{chat?.text}</h3>
+                                        <div className='d-flex justify-content-end'>
+                                            <h3 className='chat-text' style={{ color: "rgba(255, 255, 255, 0.8)", fontWeight: '400', fontSize: 12 }}>{getCurrentTimeWithAMPM(chat?.createdAt)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            :
+                            <div className='leftChat'>
+                                {
+                                    contentChatHistory[index - 1]?.person !== "bot" &&
+                                    <>
+                                        <img src={LogoCircle} className='profile-styles' />
+                                        <div className='d-flex align-items-center my-2 floatLeft'>
+                                            <img src={ArrowGrey} className='arrow' />
+                                            <p className='you-text'>Market Content GPT</p>
+                                        </div>
+                                    </>
+                                }
+                                {
+                                    chat.type === 'link' ?
+                                        <>
+                                            {chat.render_type === 'graph' ?
+                                                // <div style={{ position: 'relative', border: '1px solid #4563E4', borderRadius: 8, padding: 10 }}>
+                                                //     <div onClick={() => handleShow(chat?.text?.Graph)} style={{ position: 'absolute', right: 20, top: 0, display: 'flex', alignItems: 'center', cursor: 'pointer', backgroundColor: "white", padding: 5, zIndex: 100 }}>
+                                                //         <div style={{ color: '#4563E4' }}>Full Screen</div>
+                                                //         <img src={FullScreenIcon} width={24} top={24} />
+                                                //     </div>
+                                                //     {renderLinkGraph(chat?.text?.Graph)}
+                                                // </div>
+                                                <></>
+                                                :
+                                                <div className='chat-text-container'>
+                                                    <h3 className='chat-text' style={{ fontWeight: '700' }}>Key Points:-</h3>
+                                                    {
+                                                        chat?.text?.Key_points?.map((item) => (<h3 className='chat-text mt-1'>{item}</h3>
+                                                        ))
+                                                    }
+                                                    <h3 className='chat-text mt-2' style={{ fontWeight: '700' }}>Summary:-</h3>
+                                                    <h3 className='chat-text mt-1' dangerouslySetInnerHTML={{ __html: replaceNewlinesWithBr(chat?.text?.summary || '') }}></h3>
+                                                    <h3 className='chat-text mt-2' style={{ fontWeight: '700' }}>Sentiment:-</h3>
+                                                    <h3 className='chat-text mt-1' dangerouslySetInnerHTML={{ __html: replaceNewlinesWithBr(chat?.text?.sentiment || '') }}></h3>
+                                                </div>
+                                            }
+                                        </>
+                                        :
+                                        <>
+                                            {chat.render_type === 'graph'
+                                                ?
+                                                // <div style={{ position: 'relative', border: '1px solid #4563E4', borderRadius: 8, padding: 10 }}>
+                                                //     <div onClick={() => handleShow(chat?.text?.Graph)} style={{ position: 'absolute', right: 20, top: 0, display: 'flex', alignItems: 'center', cursor: 'pointer', backgroundColor: "white", padding: 5, zIndex: 100 }}>
+                                                //         <div style={{ color: '#4563E4' }}>Full Screen</div>
+                                                //         <img src={FullScreenIcon} width={24} top={24} />
+                                                //     </div>
+                                                //     {renderLinkGraph(chat?.text?.Graph)}
+                                                // </div>
+                                                <></>
+                                                :
+                                                <div className='chat-text-container'>
+                                                    <Markdown remarkPlugins={[remarkGfm]}>{chat?.text || ''}</Markdown>
+                                                </div>
+                                            }
+
+                                        </>
+
+                                }
+
+
+                            </div>
+                    )}
+                <div className='d-flex align-items-center'>
+                    {
+                        (contentGPTLoader) && path &&
+                        <section {...containerProps} style={{ marginLeft: -20 }}>
+                            {indicatorEl} {/* renders only while loading */}
+                        </section>
+                    }
+                    {/* {
+                        contentGraphLoader &&
+                        <div className='chat-text-container' style={{ marginLeft: 20, marginTop: 10, color: '#4563E4' }}>
+                            <h6 className='chat-text mt-1'>Creating network graph may take few mins</h6>
+                        </div>
+                    } */}
+                </div>
+            </div>
+
+            {/* <div className='tab1'>
+                <CustomTable
+                    data={userData}
+                    headers={tableHeaders}
+                />
+            </div> */}
+
+            <Modal show={show} fullscreen={true} onHide={() => setShow(false)} style={{ backgroundColor: '#fefefe' }}>
+                <Modal.Header closeButton>
+                    <Modal.Title>Relation Graph</Modal.Title>
+                </Modal.Header>
+                <NetworkGraph height={window.innerHeight - 50} nodes={data.nodes}
+                    edges={data.edges}
+                />
+            </Modal>
+            <Modal show={show2}
+                onHide={handleClose2}
+                size='lg'
+                scrollable
+                className='latest-news-modal'
+                style={{ animation: show2 ? 'slideInRight 0.3s ease-in-out' : 'none' }}
+            >
+                <Modal.Header className='pb-0'>
+                    <div className='d-flex justify-content-start align-items-center' style={{ marginBottom: 5 }}>
+                        <button onClick={() => handleClose2()} className='light-blue-btn'>
+                            <img src={BackBtnArrow} style={{ width: 7, height: 13, objectFit: 'contain', marginRight: 5, marginTop: -2 }} />
+                            Back
+                        </button>
+                    </div>
+                </Modal.Header>
+                <Modal.Body>
+                    <div className='title-text mb-3'>Sources</div>
+                    <div className='companyCardSTyleCss'>
+                        <div className='cardContainer'>
+                            {sourceData?.map((link, index) => (
+                                <>
+                                    <a href={link?.source_url} target='_blank' key={index} className='sourceCardCss'>
+                                        <div className='Dflex-css'>
+                                            <div className='d-flex align-items-center'>
+                                                {link?.image_url && <img src={link?.image_url} className='smallCircleLogoCss me-2' alt='Company Logo' />}
+                                                {link.heading && <div className='companyNameCss'>{link.heading}</div>}
+                                                {link?.source_date &&
+                                                    <div>
+                                                        <div className='sources-date ms-2'>{moment(link?.source_date).format('MMMM DD, YYYY')}<span className='sources-time ms-2'>{moment(link?.source_date).format('h:mm a')}</span></div>
+                                                    </div>
+                                                }
+                                            </div>
+                                            <img src={TopRIghtArrow} style={{ width: 30, objectFit: 'contain' }} />
+                                        </div>
+                                        {link.title && <div className='title-text' style={{ fontSize: 16, marginTop: 10 }}>{link.title}</div>}
+                                        {link.description && <div className='description-text' style={{ fontSize: 12, marginTop: 10 }}>{link.description}</div>}
+                                    </a>
+                                </>
+                            ))}
+                        </div>
+                    </div>
+                </Modal.Body>
+            </Modal>
+        </>
+    )
+});
+
+export default ChatGpt

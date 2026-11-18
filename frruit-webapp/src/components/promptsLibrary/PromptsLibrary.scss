@@ -1,0 +1,137 @@
+.promptButton {
+    position: relative;
+    top: 0;
+    right: 0;
+
+    @media only screen and (max-width: 500px) {
+        position: absolute;
+        top: 0;
+    }
+
+    .radius-button {
+        position: absolute;
+        border-top-left-radius: 15px !important;
+        border-bottom-left-radius: 15px !important;
+        border-top-right-radius: 15px !important;
+        border-bottom-right-radius: 15px !important;
+        right: 20px;
+        bottom: -30px;
+        z-index: 98;
+        padding: 9px 16px;
+        font-family: 'Roboto', sans-serif;
+        font-weight: 500;
+        font-size: 14px;
+        background-color: #EEF1FF;
+        color:#4563E4;
+
+        @media only screen and (max-width: 500px) {
+            bottom: -84px;
+            border-top-left-radius: 15px !important;
+            border-bottom-left-radius: 15px !important;
+            right: 0px;
+        }
+    }
+
+    .prompt-button-img{
+        width: 8px;
+        height: 13px;
+        object-fit: contain;
+        margin-right: 5px;
+
+        @media only screen and (min-width: 501px) {
+            // display: none;
+        }
+    }
+
+    .radius-small-button {
+        border-radius: 15px 0px 0px 15px !important;
+        float: right;
+        margin-top: 6px;
+        z-index: 100;
+        padding: 8px 8px 8px 12px;
+    }
+
+    .promptView {
+        position: fixed;
+        right: 0;
+        bottom: 0;
+        display: flex;
+        z-index: 1000;
+    }
+
+    .showPrompt {
+        border-right: 1px solid #E5E5E5;
+        border-bottom: 1px solid #E5E5E5;
+        border-left: 1px solid #E5E5E5;
+        background: #FFF;
+        box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.10);
+        position: static;
+        width: 413px;
+        padding: 16px 30px 16px 20px;
+        overflow-y: scroll;
+        @media only screen and (max-width: 500px) {
+            width: 330px;
+        }
+
+        .title {
+            color: #171E42;
+            font-size: 18px;
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        .customPrompttabs {
+            border-radius: 50px;
+            background: #E5EAFF;
+            border: 0px;
+            padding: 5px;
+            align-items: center;
+            justify-content: space-between;
+            @media only screen and (max-width: 500px) {
+                width: max-content;
+            }
+
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 50px !important;
+        }
+
+        .nav-pills .nav-link.active {
+            border: 0px !important;
+            border-radius: 50px !important;
+            background-color: #4563E4 !important;
+            color: white;
+        }
+
+        .suggest-prompts {
+            border-radius: 15px;
+            background: rgba(239, 241, 248, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 16px;
+            cursor: pointer;
+
+            .text {
+                color: #6F7387;
+                font-size: 14px;
+                font-weight: 400;
+                margin-bottom: 0;
+                line-height: normal;
+            }
+        }
+
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}

@@ -1,0 +1,301 @@
+.Right-box {
+    .box {
+        // border: 1px solid #E5E5E5;
+        width: 100%;
+        height: auto;
+        border-right: 0px;
+        // position: fixed;
+        // right: 0;
+    }
+
+    .box-content {
+        padding: 16px;
+
+        .mostOnFrruitBox {
+            width: 100%;
+            background-color: #E8ECFB99;
+            padding: 12px 24px;
+            border-radius: 15px;
+            cursor: pointer;
+        }
+
+        .text {
+            font-weight: 400;
+            font-family: 'Roboto', sans-serif;
+            font-size: 12px;
+            line-height: 14.06px;
+            color: #6F7387;
+        }
+
+        .title {
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            line-height: 18.75px;
+            color: #171E42;
+        }
+
+        .viewAllTeaxt {
+            font-weight: 500;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            line-height: 16.41px;
+            color: #4563E4;
+            cursor: pointer;
+        }
+
+        .newsBox {
+            width: 100%;
+            margin-bottom: 5px;
+
+            .newsTitle {
+                font-weight: 700;
+                font-family: 'Roboto', sans-serif;
+                font-size: 13px;
+                line-height: 14.06px;
+                color: #171E42;
+                margin-bottom: 5px;
+            }
+
+            .newsPara {
+                font-weight: 400;
+                font-family: 'Roboto', sans-serif;
+                font-size: 12px;
+                line-height: 14.06px;
+                color: #6F7387;
+            }
+        }
+    }
+}
+
+.viewModal {
+    .header-text {
+        font-family: Roboto;
+        font-size: 16px;
+        font-weight: 600;
+        color: #171E42;
+    }
+
+    .modal-content {
+        border: 0px;
+        box-shadow: 0px 0px 20px 0px #0000001A;
+    }
+
+    .modal-dialog-scrollable .modal-content {
+        max-height: 80%;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: block;
+        padding-bottom: 0px;
+    }
+
+    .modal-body {
+        padding-top: 0px;
+    }
+
+    .blue-box {
+        padding: 8px 12px;
+        background-color: #F1F4FD;
+        color: #6F7387;
+        border-radius: 15px;
+        width: 100%;
+        margin-bottom: 5px;
+        margin-top: 5px;
+    }
+}
+
+.viewModal2 {
+    .header-text {
+        font-family: Roboto;
+        font-size: 16px;
+        font-weight: 600;
+        color: #171E42;
+    }
+
+    .modal-content {
+        border: 0px;
+        box-shadow: 0px 0px 20px 0px #0000001A;
+    }
+
+    .modal-dialog-scrollable .modal-content {
+        max-height: 80%;
+        overflow: hidden;
+    }
+
+    .modal-header {
+        display: block;
+        padding-bottom: 0px;
+    }
+
+    .modal-body {
+        padding-top: 0px;
+        padding-bottom: 0px;
+    }
+
+    .blue-box {
+        padding: 8px 8px;
+        background-color: #F1F4FD;
+        color: #6F7387;
+        border-radius: 15px;
+        width: 100%;
+        margin-bottom: 5px;
+        margin-top: 5px;
+    }
+}
+
+.latest-news-modal {
+    overflow: hidden;
+
+    .modal-content {
+        animation: 0.3s ease-in-out;
+        height: 100% !important;
+    }
+
+    .modal-dialog {
+        max-width: 530px;
+        margin-right: 0px;
+        margin-left: auto;
+        margin-top: 0px;
+        height: 100% !important;
+    }
+
+    .blue-text-box {
+        padding: 6px 12px 6px 12px;
+        border-radius: 59px;
+        background-color: #4563E426;
+        color: #4563E4;
+        font-size: 14px;
+        font-weight: 400;
+    }
+
+    .small-time-text {
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 14.06px;
+        color: #6F7387;
+    }
+
+    .title-text {
+        font-size: 28px;
+        font-weight: 700;
+        color: #171E42;
+    }
+
+    .border-box {
+        border: 0.8px solid #D2D2D2;
+        border-radius: 8px;
+        padding: 2px 16px;
+    }
+
+    .dark-text {
+        font-size: 18px;
+        font-weight: 600;
+        color: #171E42;
+    }
+
+    .green-price-text {
+        font-size: 14px;
+        font-weight: 400;
+        color: #28C76F;
+    }
+
+    .text-blue {
+        color: #4563E4;
+        font-size: 18px;
+    }
+
+    .text-dark-blue {
+        font-size: 18px;
+        font-weight: 500;
+        color: #171E42;
+    }
+
+    .description-text {
+        font-size: 14px;
+        font-weight: 400;
+        color: #6F7387;
+
+        b {
+            font-size: 12px;
+        }
+    }
+
+    .footer-text {
+        font-size: 13px;
+        font-weight: 400;
+        color: #6F7387;
+    }
+
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+        }
+
+        to {
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+        }
+
+        to {
+            transform: translateX(100%);
+        }
+    }
+
+    .companyCardSTyleCss {
+        .cardContainer {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: start;
+            align-items: center;
+        }
+
+        .sourceCardCss {
+            padding: 16px;
+            background-color: #F1F4FD;
+            width: 100%;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            text-decoration: none;
+        }
+
+        .Dflex-css {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .companyNameCss {
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 18px;
+            color: #6F7387;
+        }
+
+        .smallCircleLogoCss {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .d-flex {
+            display: flex;
+        }
+
+        .align-items-center {
+            align-items: center;
+        }
+
+        .me-2 {
+            margin-right: 0.5rem;
+        }
+    }
+}

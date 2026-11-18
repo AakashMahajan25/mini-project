@@ -1,0 +1,229 @@
+.Frruit-GPT-left-box {
+
+    .radius-button {
+        position: absolute;
+        border-radius: 0px 15px 15px 0px;
+        left: 0;
+        margin-top: 6px;
+        z-index: 1000;
+        width: max-content;
+    }
+
+
+    .radius-small-button {
+        border-radius: 0px 15px 15px 0px;
+        float: left;
+        margin-top: 6px;
+        z-index: 100;
+    }
+
+    .promptView {
+        position: fixed;
+        left: 0;
+        bottom: 0;
+        display: flex;
+        z-index: 100;
+    }
+
+    .showPrompt {
+        border-right: 1px solid #E5E5E5;
+        border-bottom: 1px solid #E5E5E5;
+        border-left: 1px solid #E5E5E5;
+        background: #FFF;
+        box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.10);
+        position: static;
+        width: 413px;
+        padding: 16px 30px 16px 20px;
+        overflow-y: scroll;
+
+        .title {
+            color: #171E42;
+            font-size: 18px;
+            font-style: normal;
+            font-weight: 500;
+        }
+
+        .customPrompttabs {
+            border-radius: 50px;
+            background: #E5EAFF;
+            border: 0px;
+            padding: 5px;
+            align-items: center;
+            justify-content: space-between;
+
+        }
+
+        .nav-pills .nav-link {
+            border-radius: 50px !important;
+        }
+
+        .nav-pills .nav-link.active {
+            border: 0px !important;
+            border-radius: 50px !important;
+            background-color: #4563E4 !important;
+            color: white;
+        }
+
+        .suggest-prompts {
+            border-radius: 15px;
+            background: rgba(239, 241, 248, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            margin-bottom: 16px;
+            cursor: pointer;
+
+            .text {
+                color: #6F7387;
+                font-size: 14px;
+                font-weight: 400;
+                margin-bottom: 0;
+                line-height: normal;
+            }
+        }
+
+    }
+
+    .box {
+        border-right: 1px solid #E5E5E5;
+        width: 100%;
+        border-left: 0px;
+        padding: 16px;
+        // position: sticky;
+        overflow: scroll;
+        overflow-x: hidden;
+        @media only screen and (max-width: 500px) {
+            border: 0px;
+        }
+
+        // border-right: 1px solid #E5E5E5;
+        // border-bottom: 1px solid #E5E5E5;
+        // border-left: 1px solid #E5E5E5;
+        // background: #FFF;
+        // box-shadow: 0px 0px 20px 0px rgba(0, 0, 0, 0.10);
+        // position: static;
+        // width: 413px;
+        // padding: 16px 30px 16px 20px;
+        // overflow-y: scroll;
+
+
+        .blue-box {
+            padding: 11px 16px;
+            background-color: #F1F4FD;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 22px;
+            color: #6F7387;
+
+            &:hover {
+                background-color: #E5EAFF;
+                color: #4563E4;
+            }
+
+            // &:focus {
+            //     background-color: #E5EAFF;
+            //     color: #4563E4;
+            // }
+
+            // &:active {
+            //     background-color: #E5EAFF;
+            //     color: #4563E4;
+            // }
+            .delete-icon-css {
+                // background-image: url('../../assets/images/delete-gray-icon.png');
+            }
+        }
+
+        .blue-box-active {
+            padding: 11px 16px;
+            background-color: #4563E4;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 400;
+            line-height: 22px;
+            color: #E5EAFF;
+        }
+
+        .history-text {
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            line-height: 19px;
+            color: #171E42;
+            margin-bottom: 20px;
+        }
+
+        .time-text {
+            font-family: 'Roboto', sans-serif;
+            font-size: 16px;
+            font-weight: 400;
+            line-height: 19px;
+            color: #6F7387;
+            margin-bottom: 10px;
+        }
+    }
+
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+
+    /* Handle */
+    ::-webkit-scrollbar-thumb {
+        background: #4563E4;
+        border-radius: 10px;
+    }
+
+    /* Handle on hover */
+    ::-webkit-scrollbar-thumb:hover {
+        background: #4563E4;
+    }
+}
+
+@keyframes slideHistoryInRight {
+
+    from {
+        transform: translateX(-100%);
+    }
+
+    to {
+        transform: translateX(0);
+    }
+}
+
+.frruitGPT-left-box-modal {
+    .modal-header {
+        padding-bottom: 0px;
+        display: block;
+
+        .header-text {
+            color: #171E42;
+            font-size: 20px;
+            font-style: Roboto;
+            font-weight: 500;
+            line-height: 23.44px;
+        }
+    }
+
+    .modal-body {
+        .body-text-css {
+            color: #6F7387;
+            font-size: 16px;
+            font-style: Roboto;
+            font-weight: 400;
+            line-height: 18.75px;
+            text-align: center;
+        }
+    }
+
+    .modal-footer {
+        display: flow-root;
+    }
+}

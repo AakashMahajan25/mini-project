@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "roboto",
+        "createdAt": "2026-11-02T03:28:00.462Z",
+        "reason": "agent decision: Roboto is the existing app-wide font (24 declarations across App.scss and other component styles); news feed page matches the established design system"
+      }
+    ]
+  }
+}
